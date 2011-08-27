@@ -1,0 +1,11 @@
+{application, automeck,
+ [
+  {description, "Streamlines working with meck"},
+  {vsn, "0.1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+		  meck
+                 ]}
+ ]}.
