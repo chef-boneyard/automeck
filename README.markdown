@@ -47,6 +47,8 @@ The second feature allows _automeck_ to record function calls. _automeck_ record
                                            {shell,eval_loop,3}]}}
 
 
+_automeck_ can also combine multiple recording sessions into a single mocks.config via `automeck:combine_recordings/2`. This should simplify the case where automeck is reconfigured multiple times during a test suite run, e.g. eunit's foreach and foreachx constructs. The merging process is smart enough to find conflicting function calls and abort the merge. A conflicting function call is one where the same function (same module name, function name and arity) is called in different sessions with the same inputs but returns differing results. There's no way for automeck to handle this cleanly so aborting the merge process is the only sane option.
+
 _automeck_ started out as an experimental hack but I think these features are generally useful for testing and understanding non-trivial Erlang systems.
 
 _automeck_'s lack of docs, specs, and tests will be addressed either as I have time or as I receive pull requests. Bug reports and/or suggestions also welcome :-)
