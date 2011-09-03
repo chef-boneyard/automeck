@@ -1,7 +1,7 @@
 {application, automeck,
  [
   {description, "Streamlines working with meck"},
-  {vsn, "0.1"},
+  {vsn, "0.2"},
   {registered, []},
   {applications, [
                   kernel,

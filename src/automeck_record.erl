@@ -31,7 +31,8 @@
          from_list/1,
          log_result/5,
          finish/1,
-         abort/1]).
+         abort/1,
+         combine/2]).
 
 from_file(Path) ->
     {ok, Descs} = file:consult(Path),
@@ -55,6 +56,13 @@ finish(FileName) ->
     {ok, Calls} = file:consult(FileName),
     MockConfig = generate_mock_config(Calls),
     save_mock_config(filename:dirname(FileName), MockConfig).
+
+combine(Files, OutDir) ->
+    F = fun(File) -> {ok, Calls} = file:consult(File),
+                     generate_mock_config(Calls, orddict:new()) end,
+    Configs = [F(File) || File <- Files],
+    MockConfig = {mock, [{Mod, Name, Impls} || {{Mod, Name}, Impls} <- merge_configs(Configs)]},
+    save_mock_config(OutDir, MockConfig).
 
 insert_interceptors(_OutputFile, []) ->
     ok;
@@ -98,7 +106,7 @@ output_file(OutputPath) ->
 
 generate_mock_config(Calls) ->
     Config0 = generate_mock_config(Calls, orddict:new()),
-    {mock, [{Mod, Name, lists:usort(Impls)} || {{Mod, Name}, Impls} <- orddict:to_list(Config0)]}.
+    {mock, [{Mod, Name, Impls} || {{Mod, Name}, Impls} <- orddict:to_list(Config0)]}.
 
 generate_mock_config([], Config) ->
     Config;
@@ -108,7 +116,8 @@ generate_mock_config([{Module, Name, Impl}|T], Config) ->
                   false ->
                       orddict:store(Key, Impl, Config);
                   true ->
-                      orddict:append_list(Key, Impl, Config)
+                      Impls = orddict:fetch(Key, Config),
+                      orddict:store(Key, lists:usort(Impl ++ Impls), Config)
               end,
     generate_mock_config(T, Config1).
 
@@ -116,3 +125,31 @@ save_mock_config(OutputDir, Config) ->
     OutputFile = filename:join([OutputDir, "mocks.config"]),
     ok = file:write_file(OutputFile, io_lib:format("~p.~n", [Config])),
     {ok, OutputFile}.
+
+merge_configs([Config]) ->
+    Config;
+merge_configs([F,S]) ->
+    orddict:merge(fun detect_conflicts/3, F, S);
+merge_configs([F,S|T]) ->
+    F1 = orddict:merge(fun detect_conflicts/3, F, S),
+    merge_configs([F1|T]).
+
+detect_conflicts({Mod, Fun}, Impls1, Impls2) ->
+    case is_conflicted(Mod, Fun, Impls1, Impls2) of
+        false ->
+            lists:usort(lists:flatten(Impls1 ++ Impls2));
+        {true, {Mod, Fun, Args, Retvals}} ->
+            error({conflicting_function_calls, Mod, Fun, Args, Retvals})
+    end.
+
+is_conflicted(_Mod, _Fun, [], _Impls2) ->
+    false;
+is_conflicted(Mod, Fun, [{Args, Retval}|T], Impls2) ->
+    case proplists:get_value(Args, Impls2) of
+        undefined ->
+            is_conflicted(Mod, Fun, T, Impls2);
+        Retval ->
+            is_conflicted(Mod, Fun, T, Impls2);
+        Other ->
+            {true, {Mod, Fun, Args, [Retval, Other]}}
+    end.

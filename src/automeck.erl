@@ -17,6 +17,7 @@
 
 -export([mocks/1,
          record/1,
+         combine_recordings/2,
          finish_recording/1,
          abort_recording/1]).
 
@@ -31,3 +32,6 @@ finish_recording(FileName) ->
 
 abort_recording(FileName) ->
     automeck_record:abort(FileName).
+
+combine_recordings(Files, OutDir) ->
+    automeck_record:combine(Files, OutDir).
