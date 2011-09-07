@@ -17,6 +17,7 @@
 
 -export([mocks/1,
          record/1,
+         record/2,
          combine_recordings/2,
          finish_recording/1,
          abort_recording/1]).
@@ -24,11 +25,14 @@
 mocks(FileName) ->
     automeck_mocks:from_file(FileName).
 
-record(FileName) ->
-    automeck_record:from_file(FileName).
+record(FileName, Opts) ->
+    automeck_record:from_file(FileName, Opts).
 
-finish_recording(FileName) ->
-    automeck_record:finish(FileName).
+record(FileName) ->
+    automeck_record:from_file(FileName, []).
+
+finish_recording(State) ->
+    automeck_record:finish(State).
 
 abort_recording(FileName) ->
     automeck_record:abort(FileName).
