@@ -42,7 +42,7 @@
 	  session_id,
 	  mock_name = "mocks",
 	  filename,
-	  outdir,
+	  output_path,
 	  opts
 	 }).
 		
@@ -62,16 +62,23 @@ get_unique_session_id(Session) ->
 	    [] -> 0;
 	    [{Session, Id}] -> Id
 	end,
-    ?debugVal(SessionId),
     ets:insert(automeck_sessions, {Session, SessionId+1}),
     SessionId.
 
-parse_opts(Opts) ->
+parse_opts(OutputPath, Opts) ->
     SessionName = proplists:get_value(session_name, Opts, none),
+    MockName = proplists:get_value(mock_name, Opts, "mocks"),
     SessionId = get_unique_session_id(SessionName),
+    OutputPath2 = 
+	case proplists:get_value(output_path, Opts) of
+	    undefined -> OutputPath;
+	    Path -> Path
+	end,
     #automeck_state{session_name = SessionName,
-			    session_id = SessionId,
-			    opts = Opts}.
+		    session_id = SessionId,
+		    mock_name = MockName,
+		    output_path = OutputPath2,
+		    opts = Opts}.
 
 from_file(Path, Opts) ->
     {ok, Descs} = file:consult(Path),
@@ -79,8 +86,8 @@ from_file(Path, Opts) ->
 
 from_list([{record, OutputPath, Descs0}], Opts) ->
     Descs = [{Module, Exports, first} || {Module, Exports} <- Descs0],
-    State = parse_opts(Opts),
-    FileName = output_file(OutputPath, State),    
+    State = parse_opts(OutputPath, Opts),
+    FileName = output_file(OutputPath, State),   
     ok = filelib:ensure_dir(FileName),
     file:delete(FileName),
     ok = insert_interceptors(FileName, Descs),
@@ -95,7 +102,7 @@ finish(#automeck_state{filename=FileName} = State) ->
     meck:unload(),
     {ok, Calls} = file:consult(FileName),
     MockConfig = generate_mock_config(Calls),
-    save_mock_config(filename:dirname(FileName), MockConfig, State).
+    save_mock_config(State#automeck_state.output_path, MockConfig, State).
 
 combine(Files, OutDir) ->
     F = fun(File) -> {ok, Calls} = file:consult(File),
@@ -144,7 +151,7 @@ log_result(OutputFile, Module, Fun, Args, Result) ->
 
 generate_filename(BaseName, Ext,
 		  #automeck_state{session_name=SessionName, 
-				  session_id=SessionId}) ->
+				  session_id=SessionId} = State) ->
     FilenameParts = 
 	case SessionName of
 	    none -> [BaseName, Ext];
@@ -162,7 +169,7 @@ output_file(OutputPath, #automeck_state{} = State) ->
 conf_file(OutputPath, #automeck_state{} = State) ->
     filename:join([OutputPath, 
 		   generate_filename(State#automeck_state.mock_name, 
-				     ".conf", State)]).
+				     ".config", State)]).
 
 generate_mock_config(Calls) ->
     Config0 = generate_mock_config(Calls, orddict:new()),
