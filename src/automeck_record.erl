@@ -27,8 +27,7 @@
                       {9,  "A,B,C,D,E,F,G,H,I"},
                       {10, "A,B,C,D,E,F,G,H,I,J"}]).
 
--export([from_file/2,
-         from_list/2,
+-export([record/2,
          log_result/5,
          finish/1,
          abort/1,
@@ -37,14 +36,19 @@
 -include_lib("automeck_common.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
-from_file(Path, Opts) ->
-    {ok, Descs} = file:consult(Path),
-    from_list(Descs, Opts).
 
-from_list([{record, OutputPath, Descs0}], Opts) ->
+record({record, OutputPath, Descs0}, Opts) ->
+    from_record({record, OutputPath, Descs0}, Opts);
+record(Path, Opts) when is_list(Path) ->
+    from_file(Path, Opts).
+
+from_file(Path, Opts) ->
+    {ok, [Descs]} = file:consult(Path),
+    from_record(Descs, Opts).
+
+from_record({record, OutputPath, Descs0}, Opts) ->
     Descs = [{Module, Exports, first} || {Module, Exports} <- Descs0],
     State = automeck_common:parse_opts(OutputPath, Opts),
-    ?debugVal(State),
     automeck_common:increment_session_id(State#automeck_state.session_name),
     FileName = automeck_common:output_file(OutputPath, State),   
     ok = filelib:ensure_dir(FileName),

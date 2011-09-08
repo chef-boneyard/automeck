@@ -26,10 +26,10 @@ mocks(Opts) ->
     automeck_mocks:from_file("", Opts).
 
 record(FileName, Opts) ->
-    automeck_record:from_file(FileName, Opts).
+    automeck_record:record(FileName, Opts).
 
 record(FileName) -> 
-    record(FileName, []).
+    automeck_record:record(FileName, []).
 
 finish_recording(State) ->
     automeck_record:finish(State).
