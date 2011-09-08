@@ -30,7 +30,6 @@ from_file(FileName, Opts) ->
 	    none -> automeck_common:conf_file(State#automeck_state.output_path, State);
 	    _ -> FileName
 	   end,
-    ?debugVal(File),
     {ok, Descs} = file:consult(File),
     from_list(Descs, State).
 
