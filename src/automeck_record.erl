@@ -44,6 +44,8 @@ from_file(Path, Opts) ->
 from_list([{record, OutputPath, Descs0}], Opts) ->
     Descs = [{Module, Exports, first} || {Module, Exports} <- Descs0],
     State = automeck_common:parse_opts(OutputPath, Opts),
+    ?debugVal(State),
+    automeck_common:increment_session_id(State#automeck_state.session_name),
     FileName = automeck_common:output_file(OutputPath, State),   
     ok = filelib:ensure_dir(FileName),
     file:delete(FileName),

@@ -17,26 +17,33 @@
 
 -include_lib("automeck_common.hrl").
 
+-include_lib("eunit/include/eunit.hrl").
+
 -export([from_list/2,
          from_file/2]).
 
 from_file(FileName, Opts) ->
     State = automeck_common:parse_opts(none, Opts),
-    File = case FileName of 
-	       "" -> automeck_common:output_file(none, State);
-	       none -> automeck_common:output_file(none, State);
-	       _ -> FileName
+    File = 
+	case FileName of 
+	    "" -> automeck_common:conf_file(State#automeck_state.output_path, State);
+	    none -> automeck_common:conf_file(State#automeck_state.output_path, State);
+	    _ -> FileName
 	   end,
+    ?debugVal(File),
     {ok, Descs} = file:consult(File),
-    from_list(Descs, Opts).
+    from_list(Descs, State).
 
-from_list([{mock, Descs0}], Opts) ->
-    State = automeck_common:parse_opts("", Opts),
+from_list([{mock, Descs0}], #automeck_state{} = State) ->
+    automeck_common:increment_session_id(State#automeck_state.session_name),
     Descs1 = lists:keysort(1, Descs0),
     Descs2 = sort_by_arity(Descs1, []),
     Descs3 = generate_funs(Descs2, []),
     generate_mocks(Descs3),
-    State.
+    State;
+from_list([{mock, Descs0}], Opts) ->
+    State = automeck_common:parse_opts("", Opts),
+    from_list([{mock, Descs0}], State).
 
 sort_by_arity([], Accum) ->
     lists:reverse(Accum);
