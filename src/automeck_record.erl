@@ -27,58 +27,15 @@
                       {9,  "A,B,C,D,E,F,G,H,I"},
                       {10, "A,B,C,D,E,F,G,H,I,J"}]).
 
--export([reset_session_ids/0,
-	 from_file/2,
+-export([from_file/2,
          from_list/2,
          log_result/5,
          finish/1,
          abort/1,
          combine/2]).
 
-
-
--record(automeck_state, {
-	  session_name = none,
-	  session_id,
-	  mock_name = "mocks",
-	  filename,
-	  output_path,
-	  opts
-	 }).
-		
+-include_lib("automeck_common.hrl").
 -include_lib("eunit/include/eunit.hrl").
-
-reset_session_ids() ->
-    ets:delete(automeck_sessions).
-
-get_unique_session_id(Session) ->
-    case ets:info(automeck_sessions) of
-	undefined ->
-	    ets:new(automeck_sessions, [set, public, named_table]);
-	_ -> ok
-    end, 
-    SessionId = 
-	case ets:lookup(automeck_sessions, Session) of
-	    [] -> 0;
-	    [{Session, Id}] -> Id
-	end,
-    ets:insert(automeck_sessions, {Session, SessionId+1}),
-    SessionId.
-
-parse_opts(OutputPath, Opts) ->
-    SessionName = proplists:get_value(session_name, Opts, none),
-    MockName = proplists:get_value(mock_name, Opts, "mocks"),
-    SessionId = get_unique_session_id(SessionName),
-    OutputPath2 = 
-	case proplists:get_value(output_path, Opts) of
-	    undefined -> OutputPath;
-	    Path -> Path
-	end,
-    #automeck_state{session_name = SessionName,
-		    session_id = SessionId,
-		    mock_name = MockName,
-		    output_path = OutputPath2,
-		    opts = Opts}.
 
 from_file(Path, Opts) ->
     {ok, Descs} = file:consult(Path),
@@ -86,8 +43,8 @@ from_file(Path, Opts) ->
 
 from_list([{record, OutputPath, Descs0}], Opts) ->
     Descs = [{Module, Exports, first} || {Module, Exports} <- Descs0],
-    State = parse_opts(OutputPath, Opts),
-    FileName = output_file(OutputPath, State),   
+    State = automeck_common:parse_opts(OutputPath, Opts),
+    FileName = automeck_common:output_file(OutputPath, State),   
     ok = filelib:ensure_dir(FileName),
     file:delete(FileName),
     ok = insert_interceptors(FileName, Descs),
@@ -149,28 +106,6 @@ log_result(OutputFile, Module, Fun, Args, Result) ->
                     [append]).
 
 
-generate_filename(BaseName, Ext,
-		  #automeck_state{session_name=SessionName, 
-				  session_id=SessionId} = State) ->
-    FilenameParts = 
-	case SessionName of
-	    none -> [BaseName, Ext];
-	    _ -> [BaseName, "_" , 
-		  atom_to_list(SessionName), "_", integer_to_list(SessionId),
-		  Ext]
-	end,
-    lists:flatten(FilenameParts).
-
-
-output_file(OutputPath, #automeck_state{} = State) ->
-    filename:join([OutputPath, 
-		   generate_filename("automeck_record", ".session", State)]).
-
-conf_file(OutputPath, #automeck_state{} = State) ->
-    filename:join([OutputPath, 
-		   generate_filename(State#automeck_state.mock_name, 
-				     ".config", State)]).
-
 generate_mock_config(Calls) ->
     Config0 = generate_mock_config(Calls, orddict:new()),
     {mock, [{Mod, Name, Impls} || {{Mod, Name}, Impls} <- orddict:to_list(Config0)]}.
@@ -189,7 +124,7 @@ generate_mock_config([{Module, Name, Impl}|T], Config) ->
     generate_mock_config(T, Config1).
 
 save_mock_config(OutputDir, Config, State) ->
-    OutputFile = conf_file(OutputDir, State),
+    OutputFile = automeck_common:conf_file(OutputDir, State),
     ok = file:write_file(OutputFile, io_lib:format("~p.~n", [Config])),
     {ok, OutputFile}.
 

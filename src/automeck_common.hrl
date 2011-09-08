@@ -13,29 +13,16 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
--module(automeck).
 
--export([mocks/1,
-         record/1,
-         record/2,
-         combine_recordings/2,
-         finish_recording/1,
-         abort_recording/1]).
+-record(automeck_state, {
+	  session_name = none,
+	  session_id,
+	  filename,
+	  output_path,
+	  mock_name = "mocks",
+	  mock_file_name,
+	  opts
+	 }).
+		
 
-mocks(Opts) ->
-    automeck_mocks:from_file("", Opts).
 
-record(FileName, Opts) ->
-    automeck_record:from_file(FileName, Opts).
-
-record(FileName) -> 
-    record(FileName, []).
-
-finish_recording(State) ->
-    automeck_record:finish(State).
-
-abort_recording(FileName) ->
-    automeck_record:abort(FileName).
-
-combine_recordings(Files, OutDir) ->
-    automeck_record:combine(Files, OutDir).

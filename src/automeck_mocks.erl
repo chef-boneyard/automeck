@@ -15,18 +15,28 @@
 %% under the License.
 -module(automeck_mocks).
 
--export([from_list/1,
-         from_file/1]).
+-include_lib("automeck_common.hrl").
 
-from_file(File) ->
+-export([from_list/2,
+         from_file/2]).
+
+from_file(FileName, Opts) ->
+    State = automeck_common:parse_opts(none, Opts),
+    File = case FileName of 
+	       "" -> automeck_common:output_file(none, State);
+	       none -> automeck_common:output_file(none, State);
+	       _ -> FileName
+	   end,
     {ok, Descs} = file:consult(File),
-    from_list(Descs).
+    from_list(Descs, Opts).
 
-from_list([{mock, Descs0}]) ->
+from_list([{mock, Descs0}], Opts) ->
+    State = automeck_common:parse_opts("", Opts),
     Descs1 = lists:keysort(1, Descs0),
     Descs2 = sort_by_arity(Descs1, []),
     Descs3 = generate_funs(Descs2, []),
-    generate_mocks(Descs3).
+    generate_mocks(Descs3),
+    State.
 
 sort_by_arity([], Accum) ->
     lists:reverse(Accum);
