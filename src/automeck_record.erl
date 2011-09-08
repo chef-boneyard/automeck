@@ -95,8 +95,8 @@ insert_interceptors(OutputFile, [{Module, Exports}|T]) ->
 
 build_interceptor(OutputFile, Module, OrigModule, Name, Arity) ->
     Args = proplists:get_value(Arity, ?ARG_PROTOS),
-    Fmt = "fun(~s) -> R = ~p:~p(~s), io:fwrite(user, <<\"~~s \">>, [~p]), automeck_record:log_result(~p, ~p, ~p, ~s, R), R end.",
-    Code = lists:flatten(io_lib:format(Fmt, [Args, OrigModule, Name, Args, Name, OutputFile,
+    Fmt = "fun(~s) -> R = ~p:~p(~s), automeck_record:log_result(~p, ~p, ~p, ~s, R), R end.",
+    Code = lists:flatten(io_lib:format(Fmt, [Args, OrigModule, Name, Args, OutputFile,
                                              Module, Name, "[" ++ Args ++ "]"])),
     meck:expect(Module, Name, automeck_compile:compile(Code)).
 
