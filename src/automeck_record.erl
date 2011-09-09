@@ -31,7 +31,8 @@
          log_result/5,
          finish/1,
          abort/1,
-         combine/2]).
+         combine/2
+	]).
 
 -include_lib("automeck_common.hrl").
 -include_lib("eunit/include/eunit.hrl").
@@ -71,7 +72,9 @@ combine(Files, OutDir) ->
     F = fun(File) -> {ok, Calls} = file:consult(File),
                      generate_mock_config(Calls, orddict:new()) end,
     Configs = [F(File) || File <- Files],
+    ?debugVal(Configs),
     MockConfig = {mock, [{Mod, Name, Impls} || {{Mod, Name}, Impls} <- merge_configs(Configs)]},
+    ?debugVal(MockConfig),
     save_mock_config(OutDir, MockConfig, #automeck_state{}).
 
 insert_interceptors(_OutputFile, []) ->
@@ -107,10 +110,12 @@ build_passthru(Module, Name, Arity) ->
     meck:expect(Module, Name, automeck_compile:compile(Code)).
 
 log_result(OutputFile, Module, Fun, Args, Result) ->
-    file:write_file(OutputFile, io_lib:format("{~p, ~p, [{~p, ~p}]}.~n",
-                                            [Module, Fun, Args, Result]),
+    file:write_file(OutputFile, 
+		    io_lib:format("{~p, ~p, [{~p, ~p}]}.~n",
+				  [Module, Fun, 
+				   automeck_common:escape_data(Args), 
+				   automeck_common:escape_data(Result)]),
                     [append]).
-
 
 generate_mock_config(Calls) ->
     Config0 = generate_mock_config(Calls, orddict:new()),

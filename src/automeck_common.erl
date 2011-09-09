@@ -21,7 +21,9 @@
 	 conf_file/2,
 	 get_session_id/1,
 	 increment_session_id/1,
-	 reset_session_ids/0
+	 reset_session_ids/0,
+	 escape_data/1,
+	 unescape_data/1
 	]).
 
 
@@ -93,3 +95,64 @@ conf_file(OutputPath, #automeck_state{} = State) ->
     filename:join([OutputPath, 
 		   generate_filename(State#automeck_state.mock_name, 
 				     ".config", State)]).
+
+
+%%%
+%%% Some entities are not properly parseable by file:consult. These include
+%%% pids and refs. Convert them into a form that doesn't choke consult.
+%%%
+escape_data(Term) when is_pid(Term) ->
+    {'_automeck_pid', erlang:pid_to_list(Term)};
+escape_data(Term) when is_reference(Term) ->
+    {'_automeck_ref', erlang:ref_to_list(Term)};
+escape_data(Term) when is_list(Term) ->
+    escape_data(Term, []);
+escape_data(Term) when is_tuple(Term) ->
+%    ?debugVal(Term),
+    R = list_to_tuple(escape_data(tuple_to_list(Term), [])),
+%    ?debugVal(R)
+    R;
+escape_data(Term) -> 
+    Term.
+
+%%% Reverses lists; don't forget to reverse result
+escape_data([], Acc) ->
+    lists:reverse(Acc);
+escape_data([H|T], Acc) ->
+    escape_data(T, [escape_data(H) | Acc]);
+escape_data(X, Acc) -> % improper list
+%    ?debugVal({X, Acc}),
+    R = prepend_list_reverse(escape_data(X), Acc),
+%    ?debugVal(R),
+    R.
+
+%%% prepends B onto A, reversing B. B must be a proper list.
+prepend_list_reverse(A, []) -> 
+    A;
+prepend_list_reverse(A, [H|T]) -> 
+    prepend_list_reverse([H | A], T).
+    
+
+
+%%% This may not be the best idea; perhaps should generate unique pid/refs for each 
+%%% incoming escaped version
+unescape_data({'_automeck_pid', PidString})  ->
+    {'_automeck_pid', PidString};
+unescape_data({'_automeck_ref', RefString}) ->
+    {'_automeck_ref', RefString};
+unescape_data(Term) when is_list(Term) ->
+    unescape_data(Term, []);
+unescape_data(Term) when is_tuple(Term) ->
+      list_to_tuple(unescape_data(tuple_to_list(Term), []));
+unescape_data(Term) -> 
+    Term.
+
+unescape_data([], Acc) ->
+    lists:reverse(Acc);
+unescape_data([H|T], Acc) ->
+    unescape_data(T, [unescape_data(H) | Acc]);
+unescape_data(X, Acc) -> % improper list
+%    ?debugVal({X, Acc}),
+    R = prepend_list_reverse(unescape_data(X), Acc),
+%    ?debugVal(R),
+    R.
