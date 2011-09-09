@@ -24,7 +24,6 @@
 
 from_file(FileName, Opts) ->
     State = automeck_common:parse_opts(none, Opts),
-    ?debugVal({FileName, Opts}),
     File = 
 	case FileName of 
 	    "" -> automeck_common:conf_file(State#automeck_state.output_path, State);
@@ -32,9 +31,7 @@ from_file(FileName, Opts) ->
 	    _ -> FileName
 	   end,
     {ok, Descs} = file:consult(File),
-    ?debugVal(Descs),
     UnDescs = automeck_common:unescape_data(Descs),
-    ?debugVal(UnDescs),
     from_list(UnDescs, State).
 
 from_list([{mock, Descs0}], #automeck_state{} = State) ->
