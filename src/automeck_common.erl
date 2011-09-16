@@ -20,7 +20,9 @@
 	 output_file/2,
 	 conf_file/2,
 	 get_session_id/1,
+	 get_session_id/2,
 	 increment_session_id/1,
+	 increment_session_id/2,
 	 reset_session_ids/0,
 	 escape_data/1,
 	 unescape_data/1
@@ -33,36 +35,40 @@
 reset_session_ids() ->
     ets:delete(automeck_sessions).
 
-init_ets_table() ->
-    case ets:info(automeck_sessions) of
-	undefined -> ets:new(automeck_sessions, [set, public, named_table]);
+init_ets_table(Name) ->
+    case ets:info(Name) of
+	undefined -> ets:new(Name, [set, public, named_table]);
 	_ -> ok
     end,
-    automeck_sessions.
+    Name.
 
-get_session_id(Session) ->
-    Table = init_ets_table(),
+get_session_id(Desc) ->
+    get_session_id(automeck_sessions, Desc).
+get_session_id(Name, Desc) ->
+    Table = init_ets_table(Name),
 %    ?debugVal(ets:info(Table)),
-    case ets:lookup(Table, Session) of
+    case ets:lookup(Table, Desc) of
 	[] -> 0;
-	[{Session, Id}] -> Id
+	[{Desc, Id}] -> Id
     end.
 
-increment_session_id(Session) ->
-    Table = init_ets_table(),
+increment_session_id(Desc) ->
+    increment_session_id(automeck_sessions, Desc).
+increment_session_id(Name, Desc) ->
+    Table = init_ets_table(Name),
 %    ?debugVal(ets:info(Table)),
     SessionId = 
-	case ets:lookup(Table, Session) of
+	case ets:lookup(Table, Desc) of
 	    [] -> 0;
-	    [{Session, Id}] -> Id
+	    [{Desc, Id}] -> Id
 	end,
-    ets:insert(Table, {Session, SessionId+1}),
+    ets:insert(Table, {Desc, SessionId+1}),
     SessionId.
 
 parse_opts(OutputPath, Opts) ->
     SessionName = proplists:get_value(session_name, Opts, none),
     MockName = proplists:get_value(mock_name, Opts, "mocks"),
-    SessionId = get_session_id(SessionName),
+    SessionId = get_session_id(automeck_sessions, SessionName),
     OutputPath2 = 
 	case proplists:get_value(output_path, Opts) of
 	    undefined -> OutputPath;
