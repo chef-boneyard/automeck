@@ -1,5 +1,26 @@
 This is a (somewhat) hacky attempt at making [meck](https://github.com/eproxus/meck) just a bit easier to use. My motivation to streamline and automate meck is based on two recent experiences: mocking out a complex database API to reduce testing dependencies and helping new Erlang programmers come up to speed with Eunit and meck.
 
+## License
+
+All files in the repository are licensed under the Apache 2.0 license. If any
+file is missing the License header it should assume the following is attached;
+
+```
+Copyright 2014 Chef Software Inc
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
 _automeck_ has two main features. The first is a data driven format for generating simple mock functions which pattern match on their arguments to select the correct output. The file `priv/mocks.config` is an example of how to configure _automeck_ to generate a set of mocks.
 
 The second feature allows _automeck_ to record function calls. _automeck_ records the module & function name, the call parameters, and the return value. The file `priv/record.config` is an example of how to configure _automeck_ to record function calls on a set of modules. After you've collected enough data you can tell _automeck_ to generate a set of mocks from the recorded data. The Erlang shell session listed below illustrates the API for this feature in more detail.
